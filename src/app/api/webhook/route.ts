@@ -18,47 +18,63 @@ export async function GET(req: Request) {
 }
 
 async function downloadMedia(mediaId: string) {
-  console.log('Downloading media for:', mediaId);
   const token = process.env.WHATSAPP_TOKEN;
-  console.log('Using token:', token);
-  try {
-    const response = await fetch(`https://graph.facebook.com/v18.0/${mediaId}`, {
-      headers: {
-        'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}`,
-        'Accept': 'application/json'
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to fetch media URL: ${response.statusText}`);
-    }
-    
-    const data = await response.json();
-    
-    if (!data.url) {
-      throw new Error('No URL found in media response');
-    }
-    
-    // Now fetch the actual media using the URL from the first response
-    const mediaResponse = await fetch(data.url, {
-      headers: {
-        'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}`
-      }
-    });
-
-    if (!mediaResponse.ok) {
-      throw new Error(`Failed to download media: ${mediaResponse.statusText}`);
-    }
-
-    return mediaResponse;
-  } catch (error) {
-    console.error('Error in downloadMedia:', error);
-    throw error;
+  
+  if (!token) {
+    throw new Error('WHATSAPP_TOKEN is not configured');
   }
+
+  // First request to get media URL
+  const mediaUrlResponse = await fetch(`https://graph.facebook.com/v18.0/${mediaId}`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/json'
+    }
+  });
+
+  if (!mediaUrlResponse.ok) {
+    const errorData = await mediaUrlResponse.text();
+    console.error('Media URL Response:', {
+      status: mediaUrlResponse.status,
+      statusText: mediaUrlResponse.statusText,
+      error: errorData,
+      mediaId
+    });
+    throw new Error(`Failed to fetch media URL: ${errorData}`);
+  }
+
+  const data = await mediaUrlResponse.json();
+  console.log('Media URL Response data:', data);
+
+  if (!data.url) {
+    throw new Error('No URL found in media response');
+  }
+
+  // Second request to download actual media
+  const mediaResponse = await fetch(data.url, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+
+  if (!mediaResponse.ok) {
+    const errorData = await mediaResponse.text();
+    console.error('Media Download Response:', {
+      status: mediaResponse.status,
+      statusText: mediaResponse.statusText,
+      error: errorData
+    });
+    throw new Error(`Failed to download media: ${errorData}`);
+  }
+
+  return mediaResponse;
 }
 
 export async function POST(req: Request) {
   try {
+    console.log('WHATSAPP_TOKEN length:', process.env.WHATSAPP_TOKEN?.length);
+    console.log('WHATSAPP_TOKEN first 10 chars:', process.env.WHATSAPP_TOKEN?.substring(0, 10));
+    
     const body = await req.json();
     console.log('Received webhook:', JSON.stringify(body, null, 2));
     
