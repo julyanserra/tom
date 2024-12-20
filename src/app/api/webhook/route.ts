@@ -43,33 +43,51 @@ export async function POST(req: Request) {
     console.log('Processing image message:', message.id);
     const imageId = message.image.id;
     
-    // Get media URL
-    const mediaResponse = await fetch(`https://graph.facebook.com/v17.0/${imageId}`, {
+    // Get media URL using WhatsApp Cloud API
+    const mediaResponse = await fetch(
+      `https://graph.facebook.com/v18.0/${imageId}`, {
       headers: {
-        'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}`
+        'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}`,
+        'Accept': 'application/json'
       }
     });
     
     if (!mediaResponse.ok) {
-      const error = await mediaResponse.text();
-      console.error('Failed to get media URL:', error);
-      return new NextResponse('Failed to get media URL', { status: 500 });
+      const errorText = await mediaResponse.text();
+      console.error('Failed to get media URL:', {
+        status: mediaResponse.status,
+        statusText: mediaResponse.statusText,
+        error: errorText
+      });
+      return new NextResponse(
+        JSON.stringify({ error: 'Failed to get media URL', details: errorText }), 
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
     }
     
     const mediaData = await mediaResponse.json();
     
-    // Download image
-    const imageResponse = await fetch(mediaData.url, {
+    // Download image using WhatsApp Cloud API
+    const imageResponse = await fetch(
+      `https://graph.facebook.com/v18.0/${imageId}/binary`, {
       headers: {
         'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}`
       }
     });
     
     if (!imageResponse.ok) {
-      console.error('Failed to download image:', await imageResponse.text());
-      return new NextResponse('Failed to download image', { status: 500 });
+      const errorText = await imageResponse.text();
+      console.error('Failed to download image:', {
+        status: imageResponse.status,
+        statusText: imageResponse.statusText,
+        error: errorText
+      });
+      return new NextResponse(
+        JSON.stringify({ error: 'Failed to download image', details: errorText }), 
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
     }
-    
+
     const imageBlob = await imageResponse.blob();
     
     // Upload to Supabase Storage
