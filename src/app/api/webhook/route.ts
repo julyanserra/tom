@@ -18,59 +18,58 @@ export async function GET(req: Request) {
 }
 
 async function downloadMedia(mediaId: string) {
-  const token = process.env.WHATSAPP_TOKEN;
+    const token = process.env.WHATSAPP_TOKEN;
+    
+    if (!token) {
+      throw new Error('WHATSAPP_TOKEN is not configured');
+    }
   
-  if (!token) {
-    throw new Error('WHATSAPP_TOKEN is not configured');
-  }
-
-  // First request to get media URL
-  const mediaUrlResponse = await fetch(`https://graph.facebook.com/v18.0/${mediaId}`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Accept': 'application/json'
-    }
-  });
-
-  if (!mediaUrlResponse.ok) {
-    const errorData = await mediaUrlResponse.text();
-    console.error('Media URL Response:', {
-      status: mediaUrlResponse.status,
-      statusText: mediaUrlResponse.statusText,
-      error: errorData,
-      mediaId
+    // First request to get media URL
+    const mediaUrlResponse = await fetch(`https://graph.facebook.com/v18.0/${mediaId}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
     });
-    throw new Error(`Failed to fetch media URL: ${errorData}`);
-  }
-
-  const data = await mediaUrlResponse.json();
-  console.log('Media URL Response data:', data);
-
-  if (!data.url) {
-    throw new Error('No URL found in media response');
-  }
-
-  // Second request to download actual media
-  const mediaResponse = await fetch(data.url, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Accept': 'image/*, video/*, audio/*, application/octet-stream'
+  
+    if (!mediaUrlResponse.ok) {
+      const errorData = await mediaUrlResponse.text();
+      console.error('Media URL Response:', {
+        status: mediaUrlResponse.status,
+        statusText: mediaUrlResponse.statusText,
+        error: errorData,
+        mediaId
+      });
+      throw new Error(`Failed to fetch media URL: ${errorData}`);
     }
-  });
-
-  if (!mediaResponse.ok) {
-    const errorData = await mediaResponse.text();
-    console.error('Media Download Response:', {
-      status: mediaResponse.status,
-      statusText: mediaResponse.statusText,
-      error: errorData
+  
+    const data = await mediaUrlResponse.json();
+    console.log('Media URL Response data:', data);
+  
+    if (!data.url) {
+      throw new Error('No URL found in media response');
+    }
+  
+    // Second request to download actual media
+    const mediaResponse = await fetch(data.url, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': '*/*'
+      }
     });
-    throw new Error(`Failed to download media: ${errorData}`);
+  
+    if (!mediaResponse.ok) {
+      const errorData = await mediaResponse.text();
+      console.error('Media Download Response:', {
+        status: mediaResponse.status,
+        statusText: mediaResponse.statusText,
+        error: errorData
+      });
+      throw new Error(`Failed to download media: ${errorData}`);
+    }
+  
+    return mediaResponse;
   }
-
-  return mediaResponse;
-}
 
 export async function POST(req: Request) {
   try {
