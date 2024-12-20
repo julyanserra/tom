@@ -71,22 +71,43 @@ export async function POST(req: Request) {
     }
     
     const imageBlob = await imageResponse.blob();
-    const base64Image = Buffer.from(await imageBlob.arrayBuffer()).toString('base64');
+    
+    // Upload to Supabase Storage
+    const fileName = `${message.id}-${Date.now()}.jpg`;
+    const { data: uploadData, error: uploadError } = await supabase
+      .storage
+      .from('whatsapp-images')
+      .upload(fileName, imageBlob, {
+        contentType: 'image/jpeg',
+        upsert: false
+      });
 
-    // Store in Supabase
+    if (uploadError) {
+      console.error('Error uploading to storage:', uploadError);
+      return new NextResponse('Error uploading image', { status: 500 });
+    }
+
+    // Get the public URL
+    const { data: { publicUrl } } = supabase
+      .storage
+      .from('whatsapp-images')
+      .getPublicUrl(fileName);
+
+    // Store metadata in database
     const { data, error } = await supabase
       .from('images')
       .insert([
         {
-          image_data: base64Image,
           message_id: message.id,
+          storage_path: fileName,
+          public_url: publicUrl,
           timestamp: new Date().toISOString(),
         }
       ]);
 
     if (error) {
-      console.error('Error storing image in Supabase:', error);
-      return new NextResponse('Error storing image', { status: 500 });
+      console.error('Error storing image metadata:', error);
+      return new NextResponse('Error storing image metadata', { status: 500 });
     }
 
     console.log('Successfully processed and stored image:', message.id);
