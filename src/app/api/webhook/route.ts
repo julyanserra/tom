@@ -18,22 +18,40 @@ export async function GET(req: Request) {
 }
 
 async function downloadMedia(mediaId: string) {
-  const response = await fetch(`https://graph.facebook.com/v18.0/${mediaId}`, {
-    headers: {
-      'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}`
+  try {
+    const response = await fetch(`https://graph.facebook.com/v18.0/${mediaId}`, {
+      headers: {
+        'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}`,
+        'Accept': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch media URL: ${response.statusText}`);
     }
-  });
-  
-  const data = await response.json();
-  
-  // Now fetch the actual media using the URL from the first response
-  const mediaResponse = await fetch(data.url, {
-    headers: {
-      'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}`
+    
+    const data = await response.json();
+    
+    if (!data.url) {
+      throw new Error('No URL found in media response');
     }
-  });
+    
+    // Now fetch the actual media using the URL from the first response
+    const mediaResponse = await fetch(data.url, {
+      headers: {
+        'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}`
+      }
+    });
 
-  return mediaResponse;
+    if (!mediaResponse.ok) {
+      throw new Error(`Failed to download media: ${mediaResponse.statusText}`);
+    }
+
+    return mediaResponse;
+  } catch (error) {
+    console.error('Error in downloadMedia:', error);
+    throw error;
+  }
 }
 
 export async function POST(req: Request) {
