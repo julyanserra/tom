@@ -53,7 +53,9 @@ async function downloadMedia(mediaId: string) {
   // Second request to download actual media
   const mediaResponse = await fetch(data.url, {
     headers: {
-      'Authorization': `Bearer ${token}`
+      'Authorization': `Bearer ${token}`,
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'image/*, video/*, audio/*, application/octet-stream'
     }
   });
 
