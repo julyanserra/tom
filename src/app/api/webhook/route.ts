@@ -18,6 +18,9 @@ export async function GET(req: Request) {
 }
 
 async function downloadMedia(mediaId: string) {
+  console.log('Downloading media for:', mediaId);
+  const token = process.env.WHATSAPP_TOKEN;
+  console.log('Using token:', token);
   try {
     const response = await fetch(`https://graph.facebook.com/v18.0/${mediaId}`, {
       headers: {
