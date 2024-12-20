@@ -1,0 +1,55 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Dependency directories
+node_modules/
+
+# Build output
+.next/
+out/
+dist/
+
+# Production build
+build/
+
+# Next.js cache
+.next/cache/
+
+# Environment variables
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Tailwind CSS
+tailwind.output.css
+
+# TypeScript
+*.tsbuildinfo
+
+# Miscellaneous
+.DS_Store
+.pnp
+.pnp.js
+
+# Optional npm cache directory
+.npm
+
+# Output of 'npm pack'
+*.tgz
+
+# Optional eslint cache
+.eslintcache
+
+# Optional stylelint cache
+.stylelintcache
+
+# Next JS build logs if in custom folder
+.next-matchers
+.next-output
+
