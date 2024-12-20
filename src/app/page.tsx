@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { RiWhatsappLine } from "react-icons/ri"
 
 export default function Home() {
   const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || 'Not configured';
@@ -25,11 +26,19 @@ export default function Home() {
         <Card className="mx-auto max-w-2xl">
           <CardHeader>
             <CardTitle>How to Use</CardTitle>
-            <CardDescription>
+            <CardDescription className="flex items-center gap-2">
               Send your photos to WhatsApp number:{' '}
               <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm">
-                {whatsappNumber}
+                {whatsappNumber.replace(/(\+\d{1})(\d{3})(\d{3})(\d{4})/, '$1($2)$3-$4')}
               </code>
+              <a
+                href={`https://wa.me/${whatsappNumber}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center rounded-md bg-green-600 p-2 text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 h-10 w-10"
+              >
+                <RiWhatsappLine className="h-6 w-6" />
+              </a>
             </CardDescription>
           </CardHeader>
           <CardContent>
