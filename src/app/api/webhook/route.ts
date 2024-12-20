@@ -67,9 +67,8 @@ export async function POST(req: Request) {
     
     const mediaData = await mediaResponse.json();
     
-    // Download image using WhatsApp Cloud API
-    const imageResponse = await fetch(
-      `https://graph.facebook.com/v18.0/${imageId}/binary`, {
+    // Download image using the URL from mediaData
+    const imageResponse = await fetch(mediaData.url, {
       headers: {
         'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}`
       }
