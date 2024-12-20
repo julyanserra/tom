@@ -77,7 +77,11 @@ export async function POST(req: Request) {
     
     // Download image using the URL from mediaData response
     console.log('Downloading image from URL:', mediaData.url);
-    const imageResponse = await fetch(mediaData.url);
+    const imageResponse = await fetch(mediaData.url, {
+      headers: {
+        'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}`
+      }
+    });
     
     if (!imageResponse.ok) {
       const errorText = await imageResponse.text();
