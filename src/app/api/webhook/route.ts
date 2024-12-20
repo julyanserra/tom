@@ -17,6 +17,25 @@ export async function GET(req: Request) {
   return new NextResponse('Forbidden', { status: 403 });
 }
 
+async function downloadMedia(mediaId: string) {
+  const response = await fetch(`https://graph.facebook.com/v18.0/${mediaId}`, {
+    headers: {
+      'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}`
+    }
+  });
+  
+  const data = await response.json();
+  
+  // Now fetch the actual media using the URL from the first response
+  const mediaResponse = await fetch(data.url, {
+    headers: {
+      'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}`
+    }
+  });
+
+  return mediaResponse;
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -45,13 +64,7 @@ export async function POST(req: Request) {
     
     // Get media URL using WhatsApp Cloud API
     console.log('Fetching media URL for image:', imageId);
-    const mediaResponse = await fetch(
-      `https://graph.facebook.com/v18.0/${imageId}`, {
-      headers: {
-        'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}`,
-        'Accept': 'application/json'
-      }
-    });
+    const mediaResponse = await downloadMedia(imageId);
     
     if (!mediaResponse.ok) {
       const errorText = await mediaResponse.text();
@@ -66,38 +79,8 @@ export async function POST(req: Request) {
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
     }
-    
-    const mediaData = await mediaResponse.json();
-    console.log('Received media data:', {
-      url: mediaData.url,
-      mimeType: mediaData.mime_type,
-      sha256: mediaData.sha256,
-      fileSize: mediaData.file_size
-    });
-    
-    // Download image using the URL from mediaData response
-    console.log('Downloading image from URL:', mediaData.url);
-    const imageResponse = await fetch(mediaData.url, {
-      headers: {
-        'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}`
-      }
-    });
-    
-    if (!imageResponse.ok) {
-      const errorText = await imageResponse.text();
-      console.error('Failed to download image:', {
-        status: imageResponse.status,
-        statusText: imageResponse.statusText,
-        error: errorText,
-        url: mediaData.url
-      });
-      return new NextResponse(
-        JSON.stringify({ error: 'Failed to download image', details: errorText }), 
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
 
-    const imageBlob = await imageResponse.blob();
+    const imageBlob = await mediaResponse.blob();
     console.log('Successfully downloaded image:', {
       size: imageBlob.size,
       type: imageBlob.type
