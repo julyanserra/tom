@@ -44,6 +44,7 @@ export async function POST(req: Request) {
     const imageId = message.image.id;
     
     // Get media URL using WhatsApp Cloud API
+    console.log('Fetching media URL for image:', imageId);
     const mediaResponse = await fetch(
       `https://graph.facebook.com/v18.0/${imageId}`, {
       headers: {
@@ -57,7 +58,8 @@ export async function POST(req: Request) {
       console.error('Failed to get media URL:', {
         status: mediaResponse.status,
         statusText: mediaResponse.statusText,
-        error: errorText
+        error: errorText,
+        imageId
       });
       return new NextResponse(
         JSON.stringify({ error: 'Failed to get media URL', details: errorText }), 
@@ -66,20 +68,24 @@ export async function POST(req: Request) {
     }
     
     const mediaData = await mediaResponse.json();
-    
-    // Download image using the URL from mediaData
-    const imageResponse = await fetch(mediaData.url, {
-      headers: {
-        'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}`
-      }
+    console.log('Received media data:', {
+      url: mediaData.url,
+      mimeType: mediaData.mime_type,
+      sha256: mediaData.sha256,
+      fileSize: mediaData.file_size
     });
+    
+    // Download image using the URL from mediaData response
+    console.log('Downloading image from URL:', mediaData.url);
+    const imageResponse = await fetch(mediaData.url);
     
     if (!imageResponse.ok) {
       const errorText = await imageResponse.text();
       console.error('Failed to download image:', {
         status: imageResponse.status,
         statusText: imageResponse.statusText,
-        error: errorText
+        error: errorText,
+        url: mediaData.url
       });
       return new NextResponse(
         JSON.stringify({ error: 'Failed to download image', details: errorText }), 
@@ -88,6 +94,10 @@ export async function POST(req: Request) {
     }
 
     const imageBlob = await imageResponse.blob();
+    console.log('Successfully downloaded image:', {
+      size: imageBlob.size,
+      type: imageBlob.type
+    });
     
     // Upload to Supabase Storage
     const fileName = `${message.id}-${Date.now()}.jpg`;
