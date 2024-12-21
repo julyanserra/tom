@@ -1,7 +1,7 @@
 'use client';
 
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
-import { useEffect, useRef, TouchEvent } from "react";
+import { ChevronLeft, ChevronRight, X, Download, Play, Pause } from "lucide-react";
+import { useEffect, useRef, TouchEvent, useState } from "react";
 
 interface MediaItem {
   id: number;
@@ -25,6 +25,9 @@ export function ImageViewer({
   const currentItem = items[currentIndex];
   const touchStartX = useRef<number>(0);
   const touchEndX = useRef<number>(0);
+  const [scale, setScale] = useState(1);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   
   const handleTouchStart = (e: TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
@@ -61,6 +64,14 @@ export function ImageViewer({
     }
   };
 
+  const handleWheel = (e: WheelEvent) => {
+    if (e.ctrlKey) {
+      e.preventDefault();
+      const newScale = scale + (e.deltaY > 0 ? -0.1 : 0.1);
+      setScale(Math.min(Math.max(0.5, newScale), 3));
+    }
+  };
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -70,12 +81,27 @@ export function ImageViewer({
 
     document.addEventListener('keydown', handleKeyDown);
     document.body.style.overflow = 'hidden';
+    document.addEventListener('wheel', handleWheel, { passive: false });
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = 'auto';
+      document.removeEventListener('wheel', handleWheel);
     };
-  }, [currentIndex]);
+  }, [currentIndex, scale]);
+
+  useEffect(() => {
+    if (isPlaying) {
+      const interval = setInterval(() => {
+        if (currentIndex < items.length - 1) {
+          onNavigate(currentIndex + 1);
+        } else {
+          setIsPlaying(false);
+        }
+      }, 3000);
+      return () => clearInterval(interval);
+    }
+  }, [isPlaying, currentIndex, items.length]);
 
   return (
     <div className="fixed inset-0 z-50 bg-black">
@@ -86,30 +112,43 @@ export function ImageViewer({
         onTouchEnd={handleTouchEnd}
       >
         {/* Close button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 z-50 p-2 text-white hover:bg-white/20 rounded-full transition-colors"
-        >
-          <X className="h-8 w-8" />
-        </button>
+        <div className="absolute top-4 right-4 z-50 flex gap-2">
+          <button
+            onClick={() => {
+              const link = document.createElement('a');
+              link.href = currentItem.public_url;
+              link.download = `media-${currentItem.id}`;
+              link.click();
+            }}
+            className="p-1.5 sm:p-2 text-white hover:bg-white/20 rounded-full transition-colors"
+          >
+            <Download className="h-6 w-6 sm:h-8 sm:w-8" />
+          </button>
+          <button
+            onClick={onClose}
+            className="p-1.5 sm:p-2 text-white hover:bg-white/20 rounded-full transition-colors"
+          >
+            <X className="h-6 w-6 sm:h-8 sm:w-8" />
+          </button>
+        </div>
 
         {/* Navigation buttons */}
-        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between items-center px-4">
+        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between items-center px-2 sm:px-4">
           {currentIndex > 0 && (
             <button
               onClick={handlePrevious}
-              className="p-2 text-white hover:bg-white/20 rounded-full transition-colors"
+              className="p-1.5 sm:p-2 text-white hover:bg-white/20 rounded-full transition-colors bg-black/20 backdrop-blur-sm"
             >
-              <ChevronLeft className="h-10 w-10" />
+              <ChevronLeft className="h-8 w-8 sm:h-10 sm:w-10" />
             </button>
           )}
           
           {currentIndex < items.length - 1 && (
             <button
               onClick={handleNext}
-              className="p-2 text-white hover:bg-white/20 rounded-full transition-colors ml-auto"
+              className="p-1.5 sm:p-2 text-white hover:bg-white/20 rounded-full transition-colors ml-auto bg-black/20 backdrop-blur-sm"
             >
-              <ChevronRight className="h-10 w-10" />
+              <ChevronRight className="h-8 w-8 sm:h-10 sm:w-10" />
             </button>
           )}
         </div>
@@ -127,14 +166,27 @@ export function ImageViewer({
             <img
               src={currentItem.public_url}
               alt={`Media item ${currentItem.id}`}
-              className="max-h-full max-w-full object-contain select-none"
+              className="max-h-full max-w-full object-contain select-none transition-transform"
+              style={{ transform: `scale(${scale})` }}
+              onDoubleClick={() => setScale(scale === 1 ? 2 : 1)}
             />
           )}
         </div>
 
         {/* Counter */}
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white bg-black/50 px-4 py-2 rounded-full">
-          {currentIndex + 1} / {items.length}
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 sm:gap-4">
+          <button
+            onClick={() => setIsPlaying(!isPlaying)}
+            className="text-white bg-black/50 p-1.5 sm:p-2 rounded-full hover:bg-black/70"
+          >
+            {isPlaying ? 
+              <Pause className="h-4 w-4 sm:h-5 sm:w-5" /> : 
+              <Play className="h-4 w-4 sm:h-5 sm:w-5" />
+            }
+          </button>
+          <div className="text-white bg-black/50 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-sm sm:text-base">
+            {currentIndex + 1} / {items.length}
+          </div>
         </div>
       </div>
     </div>

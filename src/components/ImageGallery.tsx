@@ -57,6 +57,14 @@ export function ImageGallery() {
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [gridSize, setGridSize] = useState<'small' | 'medium' | 'large'>('medium');
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+
+  const gridSizeClasses = {
+    small: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6',
+    medium: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3',
+    large: 'grid-cols-1 md:grid-cols-2',
+  };
 
   useEffect(() => {
     // Initial fetch
@@ -99,6 +107,11 @@ export function ImageGallery() {
     }
   };
 
+  const sortedMediaItems = [...mediaItems].sort((a, b) => {
+    const comparison = new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+    return sortOrder === 'newest' ? comparison : -comparison;
+  });
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
@@ -109,8 +122,33 @@ export function ImageGallery() {
 
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {mediaItems.map((item, index) => (
+      <div className="mb-4 flex flex-col sm:flex-row gap-3 sm:gap-0 sm:justify-between items-stretch sm:items-center">
+        <select
+          value={sortOrder}
+          onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
+          className="bg-muted p-2 rounded text-sm"
+        >
+          <option value="newest">Newest First</option>
+          <option value="oldest">Oldest First</option>
+        </select>
+        
+        <div className="flex gap-1 bg-muted p-1 rounded-lg">
+          {(['small', 'medium', 'large'] as const).map((size) => (
+            <button
+              key={size}
+              onClick={() => setGridSize(size)}
+              className={`flex-1 sm:flex-none px-2 sm:px-3 py-1 rounded text-sm ${
+                gridSize === size ? 'bg-background shadow' : ''
+              }`}
+            >
+              {size.charAt(0).toUpperCase() + size.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className={`grid ${gridSizeClasses[gridSize]} gap-4`}>
+        {sortedMediaItems.map((item, index) => (
           <div 
             key={item.id} 
             className="relative aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
