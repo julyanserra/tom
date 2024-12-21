@@ -28,16 +28,30 @@ export function ImageViewer({
   const [scale, setScale] = useState(1);
   const [isDragging, setIsDragging] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const isButtonInteraction = useRef(false);
   
   const handleTouchStart = (e: TouchEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('button')) {
+      isButtonInteraction.current = true;
+      return;
+    }
+    
+    isButtonInteraction.current = false;
     touchStartX.current = e.touches[0].clientX;
   };
 
   const handleTouchMove = (e: TouchEvent) => {
+    if (isButtonInteraction.current) return;
     touchEndX.current = e.touches[0].clientX;
   };
 
   const handleTouchEnd = () => {
+    if (isButtonInteraction.current) {
+      isButtonInteraction.current = false;
+      return;
+    }
+
     const difference = touchStartX.current - touchEndX.current;
     const minSwipeDistance = 50;
 
@@ -154,7 +168,10 @@ export function ImageViewer({
         {/* Close button */}
         <div className="absolute top-4 right-4 z-50 flex gap-2">
           <button
-            onClick={handleDownload}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDownload();
+            }}
             className="p-1.5 sm:p-2 text-white hover:bg-white/20 rounded-full transition-colors"
           >
             <Download className="h-6 w-6 sm:h-8 sm:w-8" />
