@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
+import { ImageViewer } from '@/components/ImageViewer';
 
 interface Image {
   id: number;
@@ -16,6 +17,7 @@ interface Image {
 export function ImageGallery() {
   const [images, setImages] = useState<Image[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
 
   useEffect(() => {
     async function fetchImages() {
@@ -77,35 +79,48 @@ export function ImageGallery() {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {images.map((image) => (
-        <Card key={image.id} className="overflow-hidden">
-          <CardContent className="p-0">
-            <div className="aspect-square relative">
-              <img
-                src={image.public_url}
-                alt={`WhatsApp image ${image.id}`}
-                className="object-cover w-full h-full"
-                onError={(e) => {
-                  console.error('Image failed to load:', image.id);
-                  // Optionally set a fallback image
-                  // e.currentTarget.src = '/fallback-image.jpg';
-                }}
-              />
-            </div>
-          </CardContent>
-          <CardFooter className="p-4">
-            <time className="text-sm text-muted-foreground">
-              {new Date(image.timestamp).toLocaleString()}
-            </time>
-          </CardFooter>
-        </Card>
-      ))}
-      {images.length === 0 && (
-        <div className="col-span-full text-center py-12 text-muted-foreground">
-          No images received yet. Send an image via WhatsApp to see it here!
-        </div>
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {images.map((image, index) => (
+          <Card 
+            key={image.id} 
+            className="overflow-hidden cursor-pointer transition-transform hover:scale-[1.02]"
+            onClick={() => setSelectedImageIndex(index)}
+          >
+            <CardContent className="p-0">
+              <div className="aspect-square relative">
+                <img
+                  src={image.public_url}
+                  alt={`WhatsApp image ${image.id}`}
+                  className="object-cover w-full h-full"
+                  onError={(e) => {
+                    console.error('Image failed to load:', image.id);
+                  }}
+                />
+              </div>
+            </CardContent>
+            <CardFooter className="p-4">
+              <time className="text-sm text-muted-foreground">
+                {new Date(image.timestamp).toLocaleString()}
+              </time>
+            </CardFooter>
+          </Card>
+        ))}
+        {images.length === 0 && (
+          <div className="col-span-full text-center py-12 text-muted-foreground">
+            No images received yet. Send an image via WhatsApp to see it here!
+          </div>
+        )}
+      </div>
+
+      {selectedImageIndex !== null && (
+        <ImageViewer
+          images={images}
+          currentImageIndex={selectedImageIndex}
+          onClose={() => setSelectedImageIndex(null)}
+          onNavigate={setSelectedImageIndex}
+        />
       )}
-    </div>
+    </>
   );
 } 
