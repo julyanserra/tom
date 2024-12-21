@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Play } from 'lucide-react';
 import { ImageViewer } from './ImageViewer';
 
 type MediaItem = {
@@ -12,6 +12,46 @@ type MediaItem = {
   timestamp: string;
   message_id: string;
 };
+
+function VideoThumbnail({ src, className }: { src: string; className?: string }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [thumbnailReady, setThumbnailReady] = useState(false);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (video) {
+      video.currentTime = 1; // Seek to 1 second to get a better thumbnail
+      
+      const handleLoaded = () => {
+        setThumbnailReady(true);
+      };
+      
+      video.addEventListener('loadeddata', handleLoaded);
+      return () => video.removeEventListener('loadeddata', handleLoaded);
+    }
+  }, []);
+
+  return (
+    <div className={`relative ${className}`}>
+      <video
+        ref={videoRef}
+        src={src}
+        className={`object-cover w-full h-full transition-opacity duration-300 ${
+          thumbnailReady ? 'opacity-100' : 'opacity-0'
+        }`}
+        preload="metadata"
+      />
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="bg-black/50 rounded-full p-3 backdrop-blur-sm">
+          <Play className="w-8 h-8 text-white" fill="white" />
+        </div>
+      </div>
+      {!thumbnailReady && (
+        <div className="absolute inset-0 bg-gray-200 animate-pulse" />
+      )}
+    </div>
+  );
+}
 
 export function ImageGallery() {
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
@@ -73,14 +113,13 @@ export function ImageGallery() {
         {mediaItems.map((item, index) => (
           <div 
             key={item.id} 
-            className="relative aspect-square rounded-lg overflow-hidden cursor-pointer"
+            className="relative aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
             onClick={() => setSelectedIndex(index)}
           >
             {item.media_type === 'video' ? (
-              <video
+              <VideoThumbnail
                 src={item.public_url}
-                className="object-cover w-full h-full"
-                preload="metadata"
+                className="w-full h-full"
               />
             ) : (
               <img

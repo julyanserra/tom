@@ -16,23 +16,27 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen flex-col items-center bg-background py-12">
-      <div className="container px-4 space-y-12">
-        <div className="flex flex-col items-center text-center space-y-6">
+      <div className="container px-4 space-y-8">
+        <div className="flex flex-col items-center text-center space-y-4">
           <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl">
             Tom's Gallery
           </h1>
-          <p className="text-xl text-muted-foreground max-w-[750px]">
-            Share your photos and videos instantly through WhatsApp
-          </p>
-          <Button
-            variant="outline"
-            onClick={() => {
-              const howToUse = document.getElementById('how-to-use');
-              howToUse?.scrollIntoView({ behavior: 'smooth' });
-            }}
-          >
-            How to Use
-          </Button>
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            <p className="text-sm text-muted-foreground">
+              A collection of precious moments with Chippy Chips
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 px-3"
+              onClick={() => {
+                const howToUse = document.getElementById('how-to-use');
+                howToUse?.scrollIntoView({ behavior: 'smooth' });
+              }}
+            >
+              How to Use
+            </Button>
+          </div>
         </div>
 
         <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">

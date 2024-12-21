@@ -1,7 +1,7 @@
 'use client';
 
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useRef, TouchEvent } from "react";
 
 interface MediaItem {
   id: number;
@@ -23,7 +23,32 @@ export function ImageViewer({
   onNavigate,
 }: ImageViewerProps) {
   const currentItem = items[currentIndex];
+  const touchStartX = useRef<number>(0);
+  const touchEndX = useRef<number>(0);
   
+  const handleTouchStart = (e: TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchMove = (e: TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    const difference = touchStartX.current - touchEndX.current;
+    const minSwipeDistance = 50;
+
+    if (Math.abs(difference) > minSwipeDistance) {
+      if (difference > 0) {
+        // Swiped left
+        handleNext();
+      } else {
+        // Swiped right
+        handlePrevious();
+      }
+    }
+  };
+
   const handlePrevious = () => {
     if (currentIndex > 0) {
       onNavigate(currentIndex - 1);
@@ -54,7 +79,12 @@ export function ImageViewer({
 
   return (
     <div className="fixed inset-0 z-50 bg-black">
-      <div className="relative flex items-center justify-center w-full h-full">
+      <div 
+        className="relative flex items-center justify-center w-full h-full"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
         {/* Close button */}
         <button
           onClick={onClose}
