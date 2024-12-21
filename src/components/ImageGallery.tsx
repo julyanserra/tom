@@ -167,7 +167,7 @@ export function ImageGallery() {
                 loading="lazy"
               />
             )}
-            <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-2">
+            <div className="absolute bottom-0 left-0 right-0 bg-black/10 text-white/50 text-[10px] p-1.5 backdrop-blur-[1px]">
               {new Date(item.timestamp).toLocaleString()}
             </div>
           </div>
