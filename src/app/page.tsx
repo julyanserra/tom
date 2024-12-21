@@ -19,10 +19,10 @@ export default function Home() {
       <div className="container px-4 space-y-12">
         <div className="flex flex-col items-center text-center space-y-6">
           <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl">
-            Tom's Image Gallery
+            Tom's Gallery
           </h1>
           <p className="text-xl text-muted-foreground max-w-[750px]">
-            Share your photos instantly through WhatsApp
+            Share your photos and videos instantly through WhatsApp
           </p>
           <Button
             variant="outline"
