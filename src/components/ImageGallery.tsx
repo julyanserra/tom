@@ -2,73 +2,60 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
-import { ImageViewer } from '@/components/ImageViewer';
 
-interface Image {
+type MediaItem = {
   id: number;
-  image_data: string;
+  public_url: string;
+  media_type: 'image' | 'video';
   timestamp: string;
   message_id: string;
-  public_url: string;
-}
+};
 
 export function ImageGallery() {
-  const [images, setImages] = useState<Image[]>([]);
+  const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
 
   useEffect(() => {
-    async function fetchImages() {
-      try {
-        const { data, error } = await supabase
-          .from('images')
-          .select('*')
-          .order('timestamp', { ascending: false });
+    // Initial fetch
+    fetchMedia();
 
-        if (error) {
-          console.error('Error fetching images:', error);
-          return;
-        }
-
-        setImages(data || []);
-      } catch (error) {
-        console.error('Error:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchImages();
-
-    // Subscribe to real-time changes
+    // Set up real-time subscription
     const channel = supabase
-      .channel('images_channel')
-      .on('postgres_changes', 
-        { event: 'INSERT', schema: 'public', table: 'images' },
+      .channel('media_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'media',
+        },
         (payload) => {
-          console.log('Received real-time update:', payload);
-          setImages((current) => [payload.new as Image, ...current]);
+          setMediaItems((current) => [payload.new as MediaItem, ...current]);
         }
       )
-      .subscribe((status) => {
-        console.log('Subscription status:', status);
-        if (status === 'SUBSCRIBED') {
-          console.log('Successfully subscribed to real-time changes');
-        }
-        if (status === 'CLOSED') {
-          console.log('Subscription closed');
-        }
-        if (status === 'CHANNEL_ERROR') {
-          console.error('Error subscribing to real-time changes');
-        }
-      });
+      .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  const fetchMedia = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('media')
+        .select('*')
+        .order('timestamp', { ascending: false });
+
+      if (error) throw error;
+      setMediaItems(data || []);
+    } catch (error) {
+      console.error('Error fetching media:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -79,48 +66,35 @@ export function ImageGallery() {
   }
 
   return (
-    <>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {images.map((image, index) => (
-          <Card 
-            key={image.id} 
-            className="overflow-hidden cursor-pointer transition-transform hover:scale-[1.02]"
-            onClick={() => setSelectedImageIndex(index)}
-          >
-            <CardContent className="p-0">
-              <div className="aspect-square relative">
-                <img
-                  src={image.public_url}
-                  alt={`WhatsApp image ${image.id}`}
-                  className="object-cover w-full h-full"
-                  onError={(e) => {
-                    console.error('Image failed to load:', image.id);
-                  }}
-                />
-              </div>
-            </CardContent>
-            <CardFooter className="p-4">
-              <time className="text-sm text-muted-foreground">
-                {new Date(image.timestamp).toLocaleString()}
-              </time>
-            </CardFooter>
-          </Card>
-        ))}
-        {images.length === 0 && (
-          <div className="col-span-full text-center py-12 text-muted-foreground">
-            No images received yet. Send an image via WhatsApp to see it here!
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {mediaItems.map((item) => (
+        <div key={item.id} className="relative aspect-square rounded-lg overflow-hidden">
+          {item.media_type === 'video' ? (
+            <video
+              src={item.public_url}
+              className="object-cover w-full h-full"
+              controls
+              preload="metadata"
+            />
+          ) : (
+            <img
+              src={item.public_url}
+              alt={`Uploaded at ${item.timestamp}`}
+              className="object-cover w-full h-full"
+              loading="lazy"
+            />
+          )}
+          <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-2">
+            {new Date(item.timestamp).toLocaleString()}
           </div>
-        )}
-      </div>
-
-      {selectedImageIndex !== null && (
-        <ImageViewer
-          images={images}
-          currentImageIndex={selectedImageIndex}
-          onClose={() => setSelectedImageIndex(null)}
-          onNavigate={setSelectedImageIndex}
-        />
+        </div>
+      ))}
+      
+      {mediaItems.length === 0 && (
+        <div className="col-span-full text-center py-12 text-muted-foreground">
+          No images or videos received yet. Send media via WhatsApp to see it here!
+        </div>
       )}
-    </>
+    </div>
   );
 } 

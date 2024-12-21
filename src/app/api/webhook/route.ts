@@ -1,16 +1,22 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
-async function uploadImageToSupabase(imageBlob: Blob, prefix: string = '', messageId?: string) {
-    // Generate filename with optional prefix
-    const fileName = `${prefix}${messageId || Date.now()}-${Date.now()}.jpg`;
+async function uploadMediaToSupabase(
+    mediaBlob: Blob, 
+    prefix: string = '', 
+    messageId?: string,
+    mediaType: 'image' | 'video' = 'image'
+) {
+    // Determine file extension based on media type
+    const extension = mediaType === 'video' ? '.mp4' : '.jpg';
+    const fileName = `${prefix}${messageId || Date.now()}-${Date.now()}${extension}`;
     
     // Upload to Supabase Storage
     const { data: uploadData, error: uploadError } = await supabase
         .storage
         .from('whatsapp-images')
-        .upload(fileName, imageBlob, {
-            contentType: 'image/jpeg',
+        .upload(fileName, mediaBlob, {
+            contentType: mediaType === 'video' ? 'video/mp4' : 'image/jpeg',
             upsert: false
         });
 
@@ -18,7 +24,6 @@ async function uploadImageToSupabase(imageBlob: Blob, prefix: string = '', messa
         throw new Error(`Upload error: ${uploadError.message}`);
     }
 
-    // Get the public URL
     const { data: { publicUrl } } = supabase
         .storage
         .from('whatsapp-images')
@@ -54,7 +59,7 @@ export async function GET(req: Request) {
             });
 
             // Upload using the new function
-            const { fileName, publicUrl } = await uploadImageToSupabase(imageBlob, 'test-');
+            const { fileName, publicUrl } = await uploadMediaToSupabase(imageBlob, 'test-');
 
             return new NextResponse(JSON.stringify({
                 success: true,
@@ -178,18 +183,22 @@ export async function POST(req: Request) {
 
         const message = messages[0];
 
-        // Only process image messages
-        if (message.type !== 'image') {
-            console.log('Received non-image message type:', message.type);
-            return new NextResponse('Not an image message', { status: 200 });
+        // Process both image and video messages
+        if (!['image', 'video'].includes(message.type)) {
+            console.log('Received unsupported message type:', message.type);
+            return new NextResponse('Unsupported message type', { status: 200 });
         }
 
-        console.log('Processing image message:', message.id);
-        const imageId = message.image.id;
+        console.log(`Processing ${message.type} message:`, message.id);
+        
+        // Get media ID based on message type
+        const mediaId = message.type === 'image' 
+            ? message.image.id 
+            : message.video.id;
 
         // Get media URL using WhatsApp Cloud API
-        console.log('Fetching media URL for image:', imageId);
-        const mediaResponse = await downloadMedia(imageId);
+        console.log('Fetching media URL for:', mediaId);
+        const mediaResponse = await downloadMedia(mediaId);
 
         if (!mediaResponse.ok) {
             const errorText = await mediaResponse.text();
@@ -197,7 +206,7 @@ export async function POST(req: Request) {
                 status: mediaResponse.status,
                 statusText: mediaResponse.statusText,
                 error: errorText,
-                imageId
+                mediaId
             });
             return new NextResponse(
                 JSON.stringify({ error: 'Failed to get media URL', details: errorText }),
@@ -205,33 +214,39 @@ export async function POST(req: Request) {
             );
         }
 
-        const imageBlob = await mediaResponse.blob();
-        console.log('Successfully downloaded image:', {
-            size: imageBlob.size,
-            type: imageBlob.type
+        const mediaBlob = await mediaResponse.blob();
+        console.log('Successfully downloaded media:', {
+            size: mediaBlob.size,
+            type: mediaBlob.type
         });
 
-        // Upload using the new function
-        const { fileName, publicUrl } = await uploadImageToSupabase(imageBlob, '', message.id);
+        // Upload using the modified function
+        const { fileName, publicUrl } = await uploadMediaToSupabase(
+            mediaBlob, 
+            '', 
+            message.id,
+            message.type as 'image' | 'video'
+        );
 
         // Store metadata in database
         const { data, error } = await supabase
-            .from('images')
+            .from('media')
             .insert([
                 {
                     message_id: message.id,
                     storage_path: fileName,
                     public_url: publicUrl,
+                    media_type: message.type,
                     timestamp: new Date().toISOString(),
                 }
             ]);
 
         if (error) {
-            console.error('Error storing image metadata:', error);
-            return new NextResponse('Error storing image metadata', { status: 500 });
+            console.error('Error storing media metadata:', error);
+            return new NextResponse('Error storing media metadata', { status: 500 });
         }
 
-        console.log('Successfully processed and stored image:', message.id);
+        console.log('Successfully processed and stored media:', message.id);
         return new NextResponse('OK', { status: 200 });
     } catch (error) {
         console.error('Error processing webhook:', error);
