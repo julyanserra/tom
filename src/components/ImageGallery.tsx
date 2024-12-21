@@ -182,7 +182,7 @@ export function ImageGallery() {
 
       {selectedIndex !== null && (
         <ImageViewer
-          items={mediaItems}
+          items={sortedMediaItems}
           currentIndex={selectedIndex}
           onClose={() => setSelectedIndex(null)}
           onNavigate={setSelectedIndex}

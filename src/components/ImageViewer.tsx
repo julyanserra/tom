@@ -103,6 +103,46 @@ export function ImageViewer({
     }
   }, [isPlaying, currentIndex, items.length]);
 
+  const handleDownload = async () => {
+    try {
+      // First try the native browser download
+      const link = document.createElement('a');
+      link.href = currentItem.public_url;
+      link.download = `media-${currentItem.id}${currentItem.media_type === 'video' ? '.mp4' : '.jpg'}`;
+      
+      // For iOS Safari and some mobile browsers
+      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+        // Fetch the image/video first
+        const response = await fetch(currentItem.public_url);
+        const blob = await response.blob();
+        
+        // Try to use the native sharing if available
+        if (navigator.share) {
+          await navigator.share({
+            files: [
+              new File(
+                [blob], 
+                `media-${currentItem.id}${currentItem.media_type === 'video' ? '.mp4' : '.jpg'}`,
+                { type: blob.type }
+              )
+            ]
+          });
+          return;
+        }
+        
+        // Fallback: Open in new tab
+        window.open(currentItem.public_url, '_blank');
+      } else {
+        // Desktop browsers
+        link.click();
+      }
+    } catch (error) {
+      console.error('Error downloading media:', error);
+      // Fallback: Open in new tab
+      window.open(currentItem.public_url, '_blank');
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-black">
       <div 
@@ -114,12 +154,7 @@ export function ImageViewer({
         {/* Close button */}
         <div className="absolute top-4 right-4 z-50 flex gap-2">
           <button
-            onClick={() => {
-              const link = document.createElement('a');
-              link.href = currentItem.public_url;
-              link.download = `media-${currentItem.id}`;
-              link.click();
-            }}
+            onClick={handleDownload}
             className="p-1.5 sm:p-2 text-white hover:bg-white/20 rounded-full transition-colors"
           >
             <Download className="h-6 w-6 sm:h-8 sm:w-8" />
