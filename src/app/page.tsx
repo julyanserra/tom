@@ -1,3 +1,5 @@
+'use client'
+
 import { ImageGallery } from '@/components/ImageGallery';
 import {
   Card,
@@ -7,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { RiWhatsappLine } from "react-icons/ri"
+import { Button } from "@/components/ui/button"
 
 export default function Home() {
   const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || 'Not configured';
@@ -16,14 +19,27 @@ export default function Home() {
       <div className="container px-4 space-y-12">
         <div className="flex flex-col items-center text-center space-y-6">
           <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl">
-            WhatsApp Image Gallery
+            Tom's Image Gallery
           </h1>
           <p className="text-xl text-muted-foreground max-w-[750px]">
             Share your photos instantly through WhatsApp
           </p>
+          <Button
+            variant="outline"
+            onClick={() => {
+              const howToUse = document.getElementById('how-to-use');
+              howToUse?.scrollIntoView({ behavior: 'smooth' });
+            }}
+          >
+            How to Use
+          </Button>
+        </div>
+
+        <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
+          <ImageGallery />
         </div>
         
-        <Card className="mx-auto max-w-2xl">
+        <Card className="mx-auto max-w-2xl" id="how-to-use">
           <CardHeader>
             <CardTitle>How to Use</CardTitle>
             <CardDescription className="flex items-center gap-2">
@@ -47,11 +63,7 @@ export default function Home() {
             </p>
           </CardContent>
         </Card>
-
-        <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
-          <ImageGallery />
-        </div>
       </div>
     </main>
   );
-} 
+}

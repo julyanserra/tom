@@ -46,10 +46,22 @@ export function ImageGallery() {
       .on('postgres_changes', 
         { event: 'INSERT', schema: 'public', table: 'images' },
         (payload) => {
+          console.log('Received real-time update:', payload);
           setImages((current) => [payload.new as Image, ...current]);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to real-time changes');
+        }
+        if (status === 'CLOSED') {
+          console.log('Subscription closed');
+        }
+        if (status === 'CHANNEL_ERROR') {
+          console.error('Error subscribing to real-time changes');
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);
