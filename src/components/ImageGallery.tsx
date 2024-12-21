@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Loader2 } from 'lucide-react';
+import { ImageViewer } from './ImageViewer';
 
 type MediaItem = {
   id: number;
@@ -15,6 +16,7 @@ type MediaItem = {
 export function ImageGallery() {
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
   useEffect(() => {
     // Initial fetch
@@ -66,35 +68,49 @@ export function ImageGallery() {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {mediaItems.map((item) => (
-        <div key={item.id} className="relative aspect-square rounded-lg overflow-hidden">
-          {item.media_type === 'video' ? (
-            <video
-              src={item.public_url}
-              className="object-cover w-full h-full"
-              controls
-              preload="metadata"
-            />
-          ) : (
-            <img
-              src={item.public_url}
-              alt={`Uploaded at ${item.timestamp}`}
-              className="object-cover w-full h-full"
-              loading="lazy"
-            />
-          )}
-          <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-2">
-            {new Date(item.timestamp).toLocaleString()}
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {mediaItems.map((item, index) => (
+          <div 
+            key={item.id} 
+            className="relative aspect-square rounded-lg overflow-hidden cursor-pointer"
+            onClick={() => setSelectedIndex(index)}
+          >
+            {item.media_type === 'video' ? (
+              <video
+                src={item.public_url}
+                className="object-cover w-full h-full"
+                preload="metadata"
+              />
+            ) : (
+              <img
+                src={item.public_url}
+                alt={`Uploaded at ${item.timestamp}`}
+                className="object-cover w-full h-full"
+                loading="lazy"
+              />
+            )}
+            <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-2">
+              {new Date(item.timestamp).toLocaleString()}
+            </div>
           </div>
-        </div>
-      ))}
-      
-      {mediaItems.length === 0 && (
-        <div className="col-span-full text-center py-12 text-muted-foreground">
-          No images or videos received yet. Send media via WhatsApp to see it here!
-        </div>
+        ))}
+        
+        {mediaItems.length === 0 && (
+          <div className="col-span-full text-center py-12 text-muted-foreground">
+            No images or videos received yet. Send media via WhatsApp to see it here!
+          </div>
+        )}
+      </div>
+
+      {selectedIndex !== null && (
+        <ImageViewer
+          items={mediaItems}
+          currentIndex={selectedIndex}
+          onClose={() => setSelectedIndex(null)}
+          onNavigate={setSelectedIndex}
+        />
       )}
-    </div>
+    </>
   );
 } 
