@@ -1,6 +1,36 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
+async function uploadImageToSupabase(imageBlob: Blob, prefix: string = '', messageId?: string) {
+    // Generate filename with optional prefix
+    const fileName = `${prefix}${messageId || Date.now()}-${Date.now()}.jpg`;
+    
+    // Upload to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabase
+        .storage
+        .from('whatsapp-images')
+        .upload(fileName, imageBlob, {
+            contentType: 'image/jpeg',
+            upsert: false
+        });
+
+    if (uploadError) {
+        throw new Error(`Upload error: ${uploadError.message}`);
+    }
+
+    // Get the public URL
+    const { data: { publicUrl } } = supabase
+        .storage
+        .from('whatsapp-images')
+        .getPublicUrl(fileName);
+
+    return {
+        fileName,
+        publicUrl,
+        uploadData
+    };
+}
+
 export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     
@@ -13,10 +43,28 @@ export async function GET(req: Request) {
             console.log('Testing webhook with media ID:', mediaId);
             const mediaResponse = await downloadMedia(mediaId);
             
+            if (!mediaResponse.ok) {
+                throw new Error(`Media response not OK: ${mediaResponse.status}`);
+            }
+
+            const imageBlob = await mediaResponse.blob();
+            console.log('Successfully downloaded test image:', {
+                size: imageBlob.size,
+                type: imageBlob.type
+            });
+
+            // Upload using the new function
+            const { fileName, publicUrl } = await uploadImageToSupabase(imageBlob, 'test-');
+
             return new NextResponse(JSON.stringify({
                 success: true,
                 message: 'Test successful',
-                mediaResponse
+                details: {
+                    downloadSize: imageBlob.size,
+                    downloadType: imageBlob.type,
+                    uploadedFile: fileName,
+                    publicUrl
+                }
             }), {
                 status: 200,
                 headers: {
@@ -24,6 +72,7 @@ export async function GET(req: Request) {
                 }
             });
         } catch (error: any) {
+            console.error('Test endpoint error:', error);
             return new NextResponse(JSON.stringify({
                 success: false,
                 error: error.message
@@ -162,26 +211,8 @@ export async function POST(req: Request) {
             type: imageBlob.type
         });
 
-        // Upload to Supabase Storage
-        const fileName = `${message.id}-${Date.now()}.jpg`;
-        const { data: uploadData, error: uploadError } = await supabase
-            .storage
-            .from('whatsapp-images')
-            .upload(fileName, imageBlob, {
-                contentType: 'image/jpeg',
-                upsert: false
-            });
-
-        if (uploadError) {
-            console.error('Error uploading to storage:', uploadError);
-            return new NextResponse('Error uploading image', { status: 500 });
-        }
-
-        // Get the public URL
-        const { data: { publicUrl } } = supabase
-            .storage
-            .from('whatsapp-images')
-            .getPublicUrl(fileName);
+        // Upload using the new function
+        const { fileName, publicUrl } = await uploadImageToSupabase(imageBlob, '', message.id);
 
         // Store metadata in database
         const { data, error } = await supabase

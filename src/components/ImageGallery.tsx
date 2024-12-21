@@ -10,6 +10,7 @@ interface Image {
   image_data: string;
   timestamp: string;
   message_id: string;
+  public_url: string;
 }
 
 export function ImageGallery() {
@@ -70,9 +71,14 @@ export function ImageGallery() {
           <CardContent className="p-0">
             <div className="aspect-square relative">
               <img
-                src={`data:image/jpeg;base64,${image.image_data}`}
+                src={image.public_url}
                 alt={`WhatsApp image ${image.id}`}
                 className="object-cover w-full h-full"
+                onError={(e) => {
+                  console.error('Image failed to load:', image.id);
+                  // Optionally set a fallback image
+                  // e.currentTarget.src = '/fallback-image.jpg';
+                }}
               />
             </div>
           </CardContent>
