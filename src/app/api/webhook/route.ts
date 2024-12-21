@@ -3,10 +3,44 @@ import { supabase } from '@/lib/supabase';
 
 export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
+    
+    // Add test endpoint handling
+    const isTest = searchParams.get('test');
+    const mediaId = searchParams.get('mediaId');
+    
+    if (isTest && mediaId) {
+        try {
+            console.log('Testing webhook with media ID:', mediaId);
+            const mediaResponse = await downloadMedia(mediaId);
+            
+            return new NextResponse(JSON.stringify({
+                success: true,
+                message: 'Test successful',
+                mediaResponse
+            }), {
+                status: 200,
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+        } catch (error: any) {
+            return new NextResponse(JSON.stringify({
+                success: false,
+                error: error.message
+            }), {
+                status: 500,
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+        }
+    }
+    
+    // Original webhook verification code
     const mode = searchParams.get('hub.mode');
     const token = searchParams.get('hub.verify_token');
     const challenge = searchParams.get('hub.challenge');
-
+    
     // Verify webhook
     if (mode === 'subscribe' && token === process.env.WHATSAPP_VERIFY_TOKEN) {
         console.log('Webhook verified successfully');
@@ -24,12 +58,15 @@ async function downloadMedia(mediaId: string) {
         throw new Error('WHATSAPP_TOKEN is not configured');
     }
 
+    const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'
+    };
+
     // First request to get media URL
     const mediaUrlResponse = await fetch(`https://graph.facebook.com/v18.0/${mediaId}`, {
-        headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json'
-        }
+        headers
     });
 
     if (!mediaUrlResponse.ok) {
@@ -50,36 +87,26 @@ async function downloadMedia(mediaId: string) {
         throw new Error('No URL found in media response');
     }
 
-    // Try a different approach for the second request
-    try {
-        // Use node-fetch with different options
-        const mediaResponse = await fetch(data.url, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'User-Agent': 'WhatsApp-Gallery/1.0',
-                'Accept': 'image/*',
-                'Cache-Control': 'no-cache'
-            },
-            redirect: 'follow'
+    // Second request to download the actual media
+    console.log('Downloading media from URL:', data.url);
+    console.log('Request headers:', headers);
+    const mediaResponse = await fetch(data.url, {
+        headers
+    });
+
+    if (!mediaResponse.ok) {
+        const errorText = await mediaResponse.text();
+        console.error('Media download failed:', {
+            status: mediaResponse.status,
+            statusText: mediaResponse.statusText,
+            url: mediaResponse.url,
+            dataUrl: data.url,
+            response: errorText
         });
-
-        if (!mediaResponse.ok) {
-            throw new Error(`HTTP error! status: ${mediaResponse.status}`);
-        }
-
-        // Verify we got binary data
-        const contentType = mediaResponse.headers.get('content-type');
-        if (!contentType || !contentType.includes('image/')) {
-            throw new Error(`Invalid content type: ${contentType}`);
-        }
-
-        return mediaResponse;
-
-    } catch (error: any) {
-        console.error('Media Download Error:', error);
-        throw new Error(`Failed to download media: ${error.message}`);
+        throw new Error(`Failed to download media: ${mediaResponse.statusText} ${mediaResponse.status} ${mediaResponse.url} ${data.url}`);
     }
+
+    return mediaResponse;
 }
 
 export async function POST(req: Request) {
