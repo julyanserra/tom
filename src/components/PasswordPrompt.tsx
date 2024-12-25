@@ -17,7 +17,7 @@ export function PasswordPrompt({ onCorrectPassword }: PasswordPromptProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (password === 'chippychips') {
-      sessionStorage.setItem('isAuthenticated', 'true')
+      localStorage.setItem('isAuthenticated', 'true')
       onCorrectPassword()
     } else {
       setError(true)

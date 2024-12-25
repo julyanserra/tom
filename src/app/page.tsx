@@ -24,13 +24,13 @@ export default function Home() {
     const urlPassword = urlParams.get('password')
     
     if (urlPassword === 'chippychips') {
-      sessionStorage.setItem('isAuthenticated', 'true')
+      localStorage.setItem('isAuthenticated', 'true')
       setIsAuthenticated(true)
       // Optionally remove the password from URL
       window.history.replaceState({}, '', window.location.pathname)
     } else {
-      // Check session storage if URL password isn't present/correct
-      const auth = sessionStorage.getItem('isAuthenticated')
+      // Check local storage if URL password isn't present/correct
+      const auth = localStorage.getItem('isAuthenticated')
       setIsAuthenticated(auth === 'true')
     }
     setIsLoading(false)
