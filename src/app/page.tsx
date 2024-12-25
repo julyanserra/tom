@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { ImageGallery } from '@/components/ImageGallery';
 import {
   Card,
@@ -10,9 +11,38 @@ import {
 } from "@/components/ui/card"
 import { RiWhatsappLine } from "react-icons/ri"
 import { Button } from "@/components/ui/button"
+import { PasswordPrompt } from '@/components/PasswordPrompt'
 
 export default function Home() {
-  const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || 'Not configured';
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || 'Not configured'
+
+  useEffect(() => {
+    // Check URL parameters first
+    const urlParams = new URLSearchParams(window.location.search)
+    const urlPassword = urlParams.get('password')
+    
+    if (urlPassword === 'chippychips') {
+      sessionStorage.setItem('isAuthenticated', 'true')
+      setIsAuthenticated(true)
+      // Optionally remove the password from URL
+      window.history.replaceState({}, '', window.location.pathname)
+    } else {
+      // Check session storage if URL password isn't present/correct
+      const auth = sessionStorage.getItem('isAuthenticated')
+      setIsAuthenticated(auth === 'true')
+    }
+    setIsLoading(false)
+  }, [])
+
+  if (isLoading) {
+    return null // or a loading spinner
+  }
+
+  if (!isAuthenticated) {
+    return <PasswordPrompt onCorrectPassword={() => setIsAuthenticated(true)} />
+  }
 
   return (
     <main className="flex min-h-screen flex-col items-center bg-background py-12">
