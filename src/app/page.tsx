@@ -52,7 +52,7 @@ export default function Home() {
                 {whatsappNumber.replace(/(\+\d{1})(\d{3})(\d{3})(\d{4})/, '$1($2)$3-$4')}
               </code>
               <a
-                href={`https://wa.me/${whatsappNumber}`}
+                href={`https://wa.me/${whatsappNumber.replace('+', '')}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center rounded-md bg-green-600 p-2 text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 h-10 w-10"
@@ -61,10 +61,25 @@ export default function Home() {
               </a>
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
               Your photos will appear here automatically once they are received. The gallery updates in real-time!
             </p>
+            <div className="flex flex-col items-center gap-2">
+              <p className="text-sm text-muted-foreground">
+                Scan this QR code with your phone's camera to start chatting on WhatsApp
+              </p>
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://wa.me/${whatsappNumber.replace('+', '')}`}
+                alt="WhatsApp QR Code"
+                className="rounded-lg shadow-md"
+                width={150}
+                height={150}
+              />
+              <p className="text-xs text-muted-foreground">
+                Note: Make sure your phone has WhatsApp installed
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>
